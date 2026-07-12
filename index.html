@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ramadan pen</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #050301; overflow: hidden; font-family: 'Outfit', sans-serif; }
+    video { display: none; }
+    canvas { width: 100%; height: 100%; transform: scaleX(-1); position: absolute; z-index: 1; }
+    
+    /* Premium Glassmorphic Toolbar */
+    .toolbar {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 24px;
+      border-radius: 50px;
+      background: rgba(18, 14, 10, 0.55);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(245, 208, 97, 0.15);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      color: #FFFFFF;
+      user-select: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .toolbar:hover {
+      background: rgba(18, 14, 10, 0.65);
+      border-color: rgba(245, 208, 97, 0.3);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transform: translateX(-50%) translateY(-2px);
+    }
+    
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-right: 6px;
+    }
+    
+    .brand-icon {
+      font-size: 16px;
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-3px) rotate(6deg); }
+      100% { transform: translateY(0px) rotate(0deg); }
+    }
+    
+    .brand-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.9);
+      text-transform: uppercase;
+    }
+    
+    .divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    
+    .color-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .color-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    
+    .color-btn:hover {
+      transform: scale(1.2) translateY(-1px);
+    }
+    
+    .color-btn.active {
+      transform: scale(1.3);
+      border-color: #FFFFFF;
+      box-shadow: 0 0 14px var(--btn-color, currentColor);
+    }
+    
+    .color-picker-wrapper {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    }
+    
+    .color-picker-wrapper:hover {
+      transform: scale(1.2) translateY(-1px);
+    }
+    
+    .color-picker-wrapper.active {
+      transform: scale(1.3);
+      border-color: #FFFFFF;
+      box-shadow: 0 0 14px var(--picker-color, #FFFFFF);
+    }
+    
+    .color-picker-wrapper input[type="color"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: none;
+      cursor: pointer;
+      opacity: 0;
+    }
+    
+    .size-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 4px;
+    }
+    
+    .size-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    
+    .size-slider {
+      -webkit-appearance: none;
+      width: 90px;
+      height: 4px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      cursor: pointer;
+    }
+    
+    .size-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #F5D061;
+      box-shadow: 0 0 8px #F5D061;
+      transition: transform 0.15s ease, background-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .size-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.3);
+    }
+    
+    .size-val {
+      font-size: 13px;
+      font-weight: 600;
+      width: 18px;
+      text-align: right;
+      color: #F5D061;
+    }
+    
+    /* Brush Size Live Preview Circle */
+    .brush-preview-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-left: 2px;
+    }
+    
+    .brush-preview-dot {
+      border-radius: 50%;
+      background: #F5D061;
+      width: 6px;
+      height: 6px;
+      transition: width 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.25s ease, box-shadow 0.25s ease;
+      box-shadow: 0 0 10px rgba(245, 208, 97, 0.6);
+    }
+    
+    /* Tool selector group */
+    .tool-group {
+      display: flex;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 20px;
+      padding: 3px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .tool-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      padding: 6px 14px;
+      border-radius: 17px;
+      font-size: 11px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .tool-btn:hover {
+      color: rgba(255,255,255,0.8);
+    }
+    
+    .tool-btn.active {
+      background: rgba(245, 208, 97, 0.18);
+      color: #F5D061;
+      box-shadow: 0 2px 8px rgba(245, 208, 97, 0.15);
+      border: 1px solid rgba(245, 208, 97, 0.1);
+      margin: -1px;
+    }
+    
+    .mode-group {
+      display: flex;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 20px;
+      padding: 3px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .mode-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      padding: 6px 14px;
+      border-radius: 17px;
+      font-size: 11px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .mode-btn:hover {
+      color: rgba(255,255,255,0.8);
+    }
+    
+    .mode-btn.active {
+      background: rgba(245, 208, 97, 0.18);
+      color: #F5D061;
+      box-shadow: 0 2px 8px rgba(245, 208, 97, 0.15);
+      border: 1px solid rgba(245, 208, 97, 0.1);
+      margin: -1px;
+    }
+    
+    .action-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .action-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.75);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .action-btn:hover {
+      color: #FFFFFF;
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .action-btn:active {
+      transform: translateY(0);
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.25;
+      pointer-events: none;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .action-btn.undo-btn:hover, .action-btn.redo-btn:hover {
+      color: #F5D061;
+      background: rgba(245, 208, 97, 0.15);
+      border-color: rgba(245, 208, 97, 0.25);
+    }
+    
+    .action-btn.clear-btn:hover {
+      color: #FF4A4A;
+      background: rgba(255, 74, 74, 0.15);
+      border-color: rgba(255, 74, 74, 0.25);
+    }
+    
+    .action-btn.save-btn:hover {
+      color: #00FFCC;
+      background: rgba(0, 255, 204, 0.15);
+      border-color: rgba(0, 255, 204, 0.25);
+    }
+    
+    /* Guide Overlay */
+    .guide-box {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(18, 14, 10, 0.55);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(245, 208, 97, 0.15);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      padding: 12px 18px;
+      border-radius: 16px;
+      color: #FFFFFF;
+      max-width: 250px;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    
+    .guide-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #F5D061;
+      margin: 0 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .guide-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      margin: 0 0 8px 0;
+      line-height: 1.5;
+    }
+    
+    .status-container {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-top: 6px;
+    }
+    
+    .indicator-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #FF3B30;
+      margin-right: 6px;
+      box-shadow: 0 0 8px #FF3B30;
+      transition: background-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .indicator-dot.active {
+      background: #30D158;
+      box-shadow: 0 0 8px #30D158;
+    }
+  </style>
+</head>
+<body>
+  <video id="vid"></video>
+  <canvas id="c"></canvas>
+
+  <!-- floating guide -->
+  <div class="guide-box">
+    <h3 class="guide-title">✨ Ramadan Pen</h3>
+    <p id="guide-desc" class="guide-text">Pinch your index finger and thumb together to draw. Separate them to move the cursor.</p>
+    <div class="status-container">
+      <span id="status-dot" class="indicator-dot"></span>
+      Status: <span id="status-text" style="margin-left: 4px;">Hovering</span>
+    </div>
+  </div>
+
+  <!-- floating toolbar -->
+  <div class="toolbar">
+    <!-- Brand / Logo -->
+    <div class="brand-group">
+      <span class="brand-icon">✨</span>
+      <span class="brand-title">Pen</span>
+    </div>
+    
+    <div class="divider"></div>
+
+    <!-- tools -->
+    <div class="tool-group">
+      <button id="tool-draw" class="tool-btn active" onclick="setTool('draw')" title="Draw Mode">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span>Draw</span>
+      </button>
+      <button id="tool-move" class="tool-btn" onclick="setTool('move')" title="Move & Grab Mode">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8.5"></path><path d="M10 18H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h5"></path><path d="M18 11a2 2 0 0 1 2 2v3a4 4 0 0 1-4 4h-3a6 6 0 0 1-6-6v-1.5"></path></svg>
+        <span>Move</span>
+      </button>
+    </div>
+    
+    <div class="divider"></div>
+
+    <!-- presets -->
+    <div class="color-group">
+      <button class="color-btn active" style="background-color: #F5D061; --btn-color: rgba(245, 208, 97, 0.45);" onclick="setColor('#F5D061', this)"></button>
+      <button class="color-btn" style="background-color: #00F0FF; --btn-color: rgba(0, 240, 255, 0.45);" onclick="setColor('#00F0FF', this)"></button>
+      <button class="color-btn" style="background-color: #FF007F; --btn-color: rgba(255, 0, 127, 0.45);" onclick="setColor('#FF007F', this)"></button>
+      <button class="color-btn" style="background-color: #39FF14; --btn-color: rgba(57, 255, 20, 0.45);" onclick="setColor('#39FF14', this)"></button>
+      <button class="color-btn" style="background-color: #FFFFFF; --btn-color: rgba(255, 255, 255, 0.45);" onclick="setColor('#FFFFFF', this)"></button>
+      <div id="picker-wrapper" class="color-picker-wrapper" style="--picker-color: rgba(255, 255, 255, 0.3);">
+        <input type="color" id="custom-color" oninput="setCustomColor(this.value)">
+      </div>
+    </div>
+    
+    <div class="divider"></div>
+
+    <!-- brush size -->
+    <div class="size-group">
+      <label for="size-slider">Size</label>
+      <input type="range" id="size-slider" class="size-slider" min="2" max="40" value="6" oninput="setSize(this.value)">
+      <span id="size-val" class="size-val">6</span>
+      <div class="brush-preview-container">
+        <div id="brush-preview" class="brush-preview-dot"></div>
+      </div>
+    </div>
+    
+    <div class="divider"></div>
+
+    <!-- trigger mode -->
+    <div class="mode-group">
+      <button id="mode-pinch" class="mode-btn active" onclick="setMode('pinch')">Gesture</button>
+      <button id="mode-shift" class="mode-btn" onclick="setMode('shift')">Shift Key</button>
+    </div>
+    
+    <div class="divider"></div>
+
+    <!-- actions -->
+    <div class="action-group">
+      <button id="undo-btn" class="action-btn undo-btn" title="Undo (Ctrl+Z)" onclick="undo()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+      </button>
+      <button id="redo-btn" class="action-btn redo-btn" title="Redo (Ctrl+Y)" onclick="redo()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>
+      </button>
+      <button class="action-btn clear-btn" title="Clear Canvas (Space)" onclick="clearCanvas()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+      <button class="action-btn save-btn" title="Save Artwork" onclick="saveDrawing()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    var vid = document.getElementById('vid');
+    var c = document.getElementById('c');
+    var ctx = c.getContext('2d');
+    var arr = [];
+    var cur = null;
+    var shift = false;
+    var draw = false;
+    var sx = null;
+    var sy = null;
+
+    // Brush state variables
+    var currentColor = '#F5D061';
+    var currentSize = 6;
+    var currentMode = 'pinch'; // 'pinch' or 'shift'
+    
+    // Tools and Dragging State
+    var currentTool = 'draw'; // 'draw' or 'move'
+    var hoveredStroke = null;
+    var selectedStroke = null;
+    var isDragging = false;
+    var dragStartX = 0;
+    var dragStartY = 0;
+
+    // State-based Undo/Redo System
+    var undoHistory = [];
+    var redoHistory = [];
+
+    function saveState() {
+      // Create a deep copy of the current strokes array
+      var state = arr.map(stroke => ({
+        points: stroke.points.map(p => ({ x: p.x, y: p.y })),
+        color: stroke.color,
+        size: stroke.size
+      }));
+      undoHistory.push(state);
+      
+      // Limit history capacity to 50
+      if (undoHistory.length > 50) {
+        undoHistory.shift();
+      }
+      
+      // Clear redo stack on new action
+      redoHistory = [];
+      updateUndoRedoButtons();
+    }
+
+    function updateUndoRedoButtons() {
+      var undoBtn = document.getElementById('undo-btn');
+      var redoBtn = document.getElementById('redo-btn');
+      if (undoBtn) undoBtn.disabled = undoHistory.length === 0;
+      if (redoBtn) redoBtn.disabled = redoHistory.length === 0;
+    }
+
+    function undo() {
+      if (undoHistory.length > 0) {
+        var currentState = arr.map(stroke => ({
+          points: stroke.points.map(p => ({ x: p.x, y: p.y })),
+          color: stroke.color,
+          size: stroke.size
+        }));
+        redoHistory.push(currentState);
+        arr = undoHistory.pop();
+        cur = null;
+        draw = false;
+        isDragging = false;
+        selectedStroke = null;
+        updateUndoRedoButtons();
+      }
+    }
+
+    function redo() {
+      if (redoHistory.length > 0) {
+        var currentState = arr.map(stroke => ({
+          points: stroke.points.map(p => ({ x: p.x, y: p.y })),
+          color: stroke.color,
+          size: stroke.size
+        }));
+        undoHistory.push(currentState);
+        arr = redoHistory.pop();
+        updateUndoRedoButtons();
+      }
+    }
+
+    // Set Tool (Draw vs Move)
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tool-' + tool).classList.add('active');
+      
+      // Reset drag/hover states
+      isDragging = false;
+      selectedStroke = null;
+      hoveredStroke = null;
+    }
+
+    // Distance computation helper to find closest stroke point
+    function getClosestStroke(px, py) {
+      var minDistance = Infinity;
+      var closest = null;
+      
+      for (var i = 0; i < arr.length; i++) {
+        var stroke = arr[i];
+        if (!stroke.points || stroke.points.length === 0) continue;
+        
+        for (var j = 0; j < stroke.points.length; j++) {
+          var pt = stroke.points[j];
+          var dist = Math.sqrt(Math.pow(pt.x - px, 2) + Math.pow(pt.y - py, 2));
+          if (dist < minDistance) {
+            minDistance = dist;
+            closest = stroke;
+          }
+        }
+      }
+      
+      // Return stroke only if it is within 40px hover threshold
+      return minDistance < 40 ? closest : null;
+    }
+
+    // Render bounding-box for selection feedback
+    function drawStrokeBoundingBox(stroke) {
+      if (!stroke || !stroke.points || stroke.points.length === 0) return;
+      
+      var minX = Infinity;
+      var maxX = -Infinity;
+      var minY = Infinity;
+      var maxY = -Infinity;
+      
+      for (var i = 0; i < stroke.points.length; i++) {
+        var pt = stroke.points[i];
+        if (pt.x < minX) minX = pt.x;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.y > maxY) maxY = pt.y;
+      }
+      
+      ctx.save();
+      ctx.strokeStyle = '#F5D061';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.shadowColor = '#F5D061';
+      ctx.shadowBlur = 8;
+      
+      var pad = 12;
+      ctx.beginPath();
+      ctx.rect(minX - pad, minY - pad, (maxX - minX) + pad * 2, (maxY - minY) + pad * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Update Brush Preview Circle
+    function updateBrushPreview() {
+      var preview = document.getElementById('brush-preview');
+      if (preview) {
+        preview.style.width = currentSize + 'px';
+        preview.style.height = currentSize + 'px';
+        preview.style.backgroundColor = currentColor;
+        preview.style.boxShadow = `0 0 10px ${currentColor}`;
+      }
+    }
+
+    // Synchronize slider track color with brush color
+    function updateSliderAccent(color) {
+      var slider = document.getElementById('size-slider');
+      var styleId = 'slider-glow-style';
+      var styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `
+        .size-slider::-webkit-slider-thumb {
+          background: ${color} !important;
+          box-shadow: 0 0 8px ${color} !important;
+        }
+        .size-val {
+          color: ${color} !important;
+        }
+      `;
+      updateBrushPreview();
+    }
+    
+    // Set Brush Color from presets
+    function setColor(color, btnElement) {
+      currentColor = color;
+      
+      // Deactivate all preset buttons & custom picker wrapper
+      document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('picker-wrapper').classList.remove('active');
+      
+      // Activate selected
+      btnElement.classList.add('active');
+      
+      updateSliderAccent(color);
+    }
+    
+    // Set custom color from input
+    function setCustomColor(color) {
+      currentColor = color;
+      
+      // Deactivate preset buttons
+      document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
+      
+      // Activate custom picker wrapper
+      var pickerWrapper = document.getElementById('picker-wrapper');
+      pickerWrapper.classList.add('active');
+      pickerWrapper.style.setProperty('--picker-color', color);
+      pickerWrapper.style.borderColor = color;
+      
+      updateSliderAccent(color);
+    }
+    
+    // Set Brush Size
+    function setSize(size) {
+      currentSize = parseInt(size);
+      document.getElementById('size-val').innerText = size;
+      updateBrushPreview();
+    }
+    
+    // Set Mode (Pinch vs Shift)
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('mode-' + mode).classList.add('active');
+      
+      var desc = document.getElementById('guide-desc');
+      if (mode === 'pinch') {
+        desc.innerText = 'Pinch your index finger and thumb together to draw/grab. Separate them to move the cursor.';
+      } else {
+        desc.innerText = 'Hold the SHIFT key on your keyboard to draw/grab. Release it to move the cursor.';
+      }
+    }
+
+    // Canvas Resize Execution
+    function resizeCanvas() {
+      c.width = window.innerWidth;
+      c.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); // Run once initially
+
+    // Keyboard bindings
+    window.onkeydown = function(e) {
+      if (e.key == 'Shift') shift = true;
+      if (e.code == 'Space') clearCanvas();
+      
+      // Shortcuts for Undo / Redo
+      if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    }
+    
+    window.onkeyup = function(e) {
+      if (e.key == 'Shift') shift = false;
+    }
+
+    function clearCanvas() {
+      if (arr.length > 0) {
+        saveState();
+      }
+      arr = [];
+      cur = null;
+      draw = false;
+      updateUndoRedoButtons();
+    }
+
+    function saveDrawing() {
+      if (arr.length === 0) {
+        alert("Canvas is empty! Draw something first.");
+        return;
+      }
+      
+      var tempCanvas = document.createElement('canvas');
+      tempCanvas.width = c.width;
+      tempCanvas.height = c.height;
+      var tempCtx = tempCanvas.getContext('2d');
+      
+      // Black background
+      tempCtx.fillStyle = '#050301';
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      
+      // Mirror horizontally to match what the user saw on screen
+      tempCtx.translate(tempCanvas.width, 0);
+      tempCtx.scale(-1, 1);
+      
+      // Configure drawing styles
+      tempCtx.lineCap = 'round';
+      tempCtx.lineJoin = 'round';
+      
+      for (var i = 0; i < arr.length; i++) {
+        var stroke = arr[i];
+        if (!stroke.points || stroke.points.length === 0) continue;
+        tempCtx.beginPath();
+        tempCtx.strokeStyle = stroke.color;
+        tempCtx.lineWidth = stroke.size;
+        tempCtx.shadowColor = stroke.color;
+        tempCtx.shadowBlur = stroke.size * 2;
+        
+        for (var j = 0; j < stroke.points.length; j++) {
+          if (j == 0) tempCtx.moveTo(stroke.points[j].x, stroke.points[j].y);
+          else tempCtx.lineTo(stroke.points[j].x, stroke.points[j].y);
+        }
+        tempCtx.stroke();
+      }
+      
+      var link = document.createElement('a');
+      link.download = 'ramadan-pen-artwork.png';
+      link.href = tempCanvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function run(res) {
+      // Draw background camera frame
+      ctx.drawImage(res.image, 0, 0, c.width, c.height);
+      
+      // Overlap dark wash overlay
+      ctx.fillStyle = 'rgba(10, 6, 2, 0.85)';
+      ctx.fillRect(0, 0, c.width, c.height);
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Draw all historical strokes
+      for (var i = 0; i < arr.length; i++) {
+        var stroke = arr[i];
+        if (!stroke.points || stroke.points.length === 0) continue;
+        
+        ctx.beginPath();
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.shadowColor = stroke.color;
+        ctx.shadowBlur = stroke.size * 2.5; // Scale shadow glow blur with size
+        
+        for (var j = 0; j < stroke.points.length; j++) {
+          if (j == 0) ctx.moveTo(stroke.points[j].x, stroke.points[j].y);
+          else ctx.lineTo(stroke.points[j].x, stroke.points[j].y);
+        }
+        ctx.stroke();
+      }
+
+      if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+        var lm = res.multiHandLandmarks[0];
+        
+        // Draw hands helper skeleton
+        drawConnectors(ctx, lm, HAND_CONNECTIONS, {color: 'rgba(255, 255, 255, 0.15)', lineWidth: 1});
+        drawLandmarks(ctx, lm, {color: 'rgba(245, 208, 97, 0.35)', lineWidth: 1, radius: 1.5});
+
+        var ind = lm[8];
+        var rx = ind.x * c.width;
+        var ry = ind.y * c.height;
+
+        // Position smoothing
+        if (sx == null) {
+          sx = rx; 
+          sy = ry;
+        } else {
+          sx += (rx - sx) * 0.45;
+          sy += (ry - sy) * 0.45;
+        }
+
+        // Determine drawing state trigger based on active mode
+        var activeDrawingTriggered = false;
+        if (currentMode === 'pinch') {
+          var thumb = lm[4];
+          var dist = Math.sqrt(Math.pow(ind.x - thumb.x, 2) + Math.pow(ind.y - thumb.y, 2));
+          activeDrawingTriggered = dist < 0.08; // Pinch threshold
+        } else {
+          activeDrawingTriggered = shift;
+        }
+
+        // Update visual status indicators in top left guide
+        var statusDot = document.getElementById('status-dot');
+        var statusText = document.getElementById('status-text');
+        if (activeDrawingTriggered) {
+          statusDot.classList.add('active');
+          statusText.innerText = currentTool === 'draw' ? 'Drawing' : 'Dragging';
+          statusText.style.color = '#30D158';
+        } else {
+          statusDot.classList.remove('active');
+          statusText.innerText = 'Hovering';
+          statusText.style.color = 'rgba(255,255,255,0.7)';
+        }
+
+        // Draw cursor indicator at smoothed index finger position
+        ctx.beginPath();
+        ctx.arc(sx, sy, currentSize / 2 + 3, 0, 2 * Math.PI);
+        ctx.shadowColor = currentColor;
+        ctx.shadowBlur = 12;
+        if (activeDrawingTriggered) { 
+          ctx.fillStyle = '#FFFFFF'; 
+        } else { 
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)'; 
+        }
+        ctx.fill();
+
+        // Mode and tool state actions
+        if (currentTool === 'draw') {
+          // Drawing logic
+          if (activeDrawingTriggered) {
+            if (!draw) {
+              draw = true;
+              saveState();
+              cur = {
+                points: [],
+                color: currentColor,
+                size: currentSize
+              };
+              arr.push(cur);
+              updateUndoRedoButtons();
+            }
+            cur.points.push({x: sx, y: sy});
+          } else {
+            draw = false;
+          }
+        } else if (currentTool === 'move') {
+          // Move logic
+          if (!isDragging) {
+            // Check for hovered stroke if not currently dragging
+            hoveredStroke = getClosestStroke(sx, sy);
+          }
+          
+          if (hoveredStroke) {
+            drawStrokeBoundingBox(hoveredStroke);
+          }
+
+          if (activeDrawingTriggered) {
+            if (!isDragging) {
+              isDragging = true;
+              selectedStroke = hoveredStroke || 'all';
+              dragStartX = sx;
+              dragStartY = sy;
+              saveState(); // Save state before moving points
+            } else {
+              // Drag translation math
+              var dx = sx - dragStartX;
+              var dy = sy - dragStartY;
+              
+              if (selectedStroke === 'all') {
+                for (var i = 0; i < arr.length; i++) {
+                  var strk = arr[i];
+                  for (var j = 0; j < strk.points.length; j++) {
+                    strk.points[j].x += dx;
+                    strk.points[j].y += dy;
+                  }
+                }
+              } else {
+                for (var j = 0; j < selectedStroke.points.length; j++) {
+                  selectedStroke.points[j].x += dx;
+                  selectedStroke.points[j].y += dy;
+                }
+              }
+              
+              dragStartX = sx;
+              dragStartY = sy;
+            }
+          } else {
+            isDragging = false;
+            selectedStroke = null;
+          }
+        }
+      } else {
+        draw = false;
+        isDragging = false;
+        selectedStroke = null;
+        sx = null;
+        
+        // Update visual status indicators when no hand is in frame
+        var statusDot = document.getElementById('status-dot');
+        var statusText = document.getElementById('status-text');
+        statusDot.classList.remove('active');
+        statusText.innerText = 'No Hand Detected';
+        statusText.style.color = '#FF3B30';
+      }
+    }
+
+    // Run initial preview setup
+    updateBrushPreview();
+    updateUndoRedoButtons();
+
+    // Initialize MediaPipe Hands
+    const hands = new Hands({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }});
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    hands.onResults(run);
+
+    // Initialize Camera
+    const camera = new Camera(vid, {
+      onFrame: async () => {
+        await hands.send({image: vid});
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  </script>
+</body>
+</html>
